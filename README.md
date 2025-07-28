@@ -28,12 +28,14 @@ The **LangGraph SQL Agent** is an advanced project showcasing a conversational a
 
 ```
 langgraph-sql-agent/
+├── assets/
+│   ├── workflow.png          # Image of the agent's graph workflow
+│   └── setup.png             # Image of the setup process
 ├── sql-agent-llama.ipynb   # Main notebook with agent implementation
-├── example.db              # SQLite database file created by the notebook
-├── requirements.txt        # Python dependencies
+├── setup.py                # Script to initialize and populate the database
+├── example.db              # SQLite database file (created by setup.py)
 └── README.md               # This file
 ```
-
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -105,6 +107,25 @@ The current implementation uses SQLite. You can switch to any database supported
 
 ```python
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@host/dbname")
+```
+
+## Usage
+
+You can interact with the agent by modifying the last few cells in the notebook. Change the `user_question_*` variables to ask your own questions.
+
+**Example Invocation:**
+
+```python
+# The configuration to identify the current user (user_id: "2" is "Bob")
+fake_config = {"configurable": {"current_user_id": "2"}}
+
+# Ask a question to see your orders
+user_question_3 = "Show me my orders"
+result_3 = app.invoke({"question": user_question_3, "attempts": 0}, config=fake_config)
+print(result_3["query_result"])
+
+# Expected Output:
+# Hello Bob, you have ordered Lasagne for $14.0 and Spaghetti Carbonara for $15.0.
 ```
 
 ## 📝 Requirements
