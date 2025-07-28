@@ -1,128 +1,154 @@
+# 💬 LangGraph SQL Agent
 
-# Conversational SQL Agent with LangGraph & Ollama
+*Conversational Natural Language to SQL with Llama 3.2*
 
-This project demonstrates a sophisticated, conversational Text-to-SQL agent built using Python, LangGraph, and Ollama. The agent can understand natural language questions, convert them into complex SQL queries (including `INSERT` statements with subqueries and `SELECT` statements with `JOIN`s), execute them against a database, and provide human-readable responses.
+## 🎯 Overview
 
-The entire workflow runs locally without requiring API keys for the core language model, thanks to Ollama.
+The **LangGraph SQL Agent** is an advanced project showcasing a conversational agent that can understand natural language, convert it into SQL queries, interact with a database, and deliver human-readable answers. Built with LangGraph, this agent features a sophisticated, multi-step workflow that includes relevance checking, query generation, execution, and a self-correction loop to handle errors, making database interactions as simple as having a conversation.
 
 ## ✨ Key Features
 
-  - **Natural Language to SQL:** Translates plain English questions into precise SQL queries.
-  - **Handles Complex Queries:** Capable of generating both data retrieval (`SELECT` with `JOIN`s) and data creation (`INSERT` with subqueries) statements.
-  - **Relevance Checking:** Intelligently determines if a question is relevant to the database schema and provides conversational fallbacks for off-topic queries.
-  - **Robust Workflow:** Built as a state machine using LangGraph, allowing for complex logic, error handling, and retries.
-  - **Local & Private:** Runs entirely on your local machine using Ollama, ensuring data privacy and no LLM API costs.
-  - **Human-Friendly Responses:** Formats raw database outputs into clear, easy-to-understand sentences.
+  - 🗣️ **Natural Language to SQL**: Translates user questions like "show me my orders" into precise SQL queries.
+  - 🤔 **Relevance Checking**: First determines if a question is related to the database schema, providing witty responses for off-topic queries.
+  - ⚙️ **Dynamic SQL Execution**: Executes generated queries against a live SQLite database using SQLAlchemy.
+  - 📖 **Human-Readable Responses**: Converts raw SQL results into clear, friendly, and easy-to-understand natural language.
+  - 🔄 **Self-Correction Loop**: If a generated SQL query fails, the agent automatically attempts to rewrite the original question and regenerate the query, retrying up to 5 times.
+  - 🤖 **Stateful Graph Architecture**: Manages the entire multi-step process using a robust and easy-to-visualize state graph built with LangGraph.
 
-## ⚙️ Architecture & Workflow
+## 🛠️ Technology Stack
 
-The agent operates as a cyclical graph, or a state machine, built with LangGraph. At each step, the agent decides on the next action based on the current state.
+  - **Agent Framework**: LangGraph for creating the stateful agent graph.
+  - **LLM Orchestration**: LangChain for core abstractions (prompts, parsers, messages).
+  - **Database**: SQLAlchemy with a SQLite backend.
+  - **LLM Integration**: Ollama (Llama 3.2) for all reasoning and generation tasks.
+  - **Core Language**: Python 3.10+
+  - **Environment**: Jupyter Notebook
 
-The primary nodes in the graph include:
+## 📁 Project Structure
 
-1.  **`get_current_user`**: Identifies the user making the request.
-2.  **`check_relevance`**: Uses the LLM to determine if the question is database-related.
-3.  **`convert_to_sql`**: The core node that translates the user's question into a SQL query. This is guided by a robust prompt with examples.
-4.  **`execute_sql`**: Runs the generated query against the database.
-5.  **`generate_human_readable_answer`**: Formats the result for the user.
-6.  **`generate_funny_response`**: Handles irrelevant questions.
-
-The graph below visualizes the agent's decision-making process:
-
-## 🛠️ Tech Stack
-
-  - **Core Logic:** LangChain & LangGraph
-  - **Language Model:** Ollama (with `llama3.2`)
-  - **Database:** SQLAlchemy (with SQLite)
-  - **Language:** Python
-
-## 🚀 Getting Started
-
-Follow these steps to set up and run the project on your local machine.
-
-### 1\. Prerequisites
-
-  - Python 3.8+
-  - [Ollama](https://ollama.com/) installed and running.
-
-### 2\. Clone the Repository
-
-```bash
-git clone https://github.com/Shreyash-Gaur/LangGraph-SQL-Agent.git
-cd LangGraph-SQL-Agent
+```
+langgraph-sql-agent/
+├── sql-agent-llama.ipynb   # Main notebook with agent implementation
+├── example.db              # SQLite database file created by the notebook
+├── requirements.txt        # Python dependencies
+└── README.md               # This file
 ```
 
-### 3\. Set Up the Environment
+## 🚀 Quick Start
 
-It's recommended to use a virtual environment.
+### Prerequisites
 
-```bash
-# Create a virtual environment
-python -m venv .venv
+  - Ollama running locally.
+  - Python 3.10+ with Jupyter Notebook installed.
 
-# Activate it (on macOS/Linux)
-source .venv/bin/activate
 
-# Or on Windows
-# .venv\Scripts\activate
-```
+## 🎮 How It Works
 
-### 4\. Install Dependencies
+The agent operates as a state graph where each node is a specific function, and edges determine the flow based on the current state.
 
-Install the required packages from the `requirements.txt` file.
+### 1\. **User Identification**
 
-```bash
-pip install -r requirements.txt
-```
+The workflow begins at the `get_current_user` node, which identifies the active user based on a `current_user_id` passed in the configuration.
 
-### 5\. Download the Language Model
+### 2\. **Relevance Checking**
 
-Pull the `llama3.2` model using Ollama.
+The user's question is passed to the `check_relevance` node. The LLM determines if the question is related to the database schema. The `relevance_router` then directs the flow: `relevant` questions go to the SQL generation step, while `not_relevant` questions are sent to the `generate_funny_response` node.
 
-```bash
-ollama pull llama3.2
-```
+### 3\. **NL-to-SQL Conversion**
 
-### 6\. Initialize the Database
+The `convert_nl_to_sql` node takes the user's question and schema information and uses the LLM to generate a valid SQL query.
 
-Run the setup script from your terminal to create the `example.db` file and populate it with sample data.
+### 4\. **SQL Execution & Routing**
 
-```bash
-python setup_db.py
-```
+The `execute_sql` node runs the generated query against the database. The `execute_sql_router` then checks for errors.
 
-You should see the message: `Datenbank wurde erfolgreich erweitert und mit Beispieldaten gefüllt.`
+  - **On Success**: The flow moves to `generate_human_readable_answer`.
+  - **On Failure**: The flow moves to the self-correction loop.
 
-### 7\. Run the Agent
+### 5\. **Response Generation / Self-Correction**
 
-Now you are ready to run the agent.
+  - **Success Path**: The `generate_human_readable_answer` node converts the raw SQL result into a friendly, natural language response and the workflow ends.
+  - **Failure Path**: The `regenerate_query` node rewrites the user's original question to be more precise. The `check_attempts_router` sends it back to the `convert_to_sql` node to try again. If it fails 5 times, the workflow ends.
 
-1.  Launch Jupyter Lab or Jupyter Notebook:
-    ```bash
-    jupyter lab
-    ```
-2.  Open the `ollama-sql-agent.ipynb` notebook.
-3.  Run the cells sequentially from top to bottom.
+## 📊 Sample Queries
 
-## Usage
+You can test the agent's capabilities with the following queries from the notebook:
 
-You can interact with the agent by modifying the last few cells in the notebook. Change the `user_question_*` variables to ask your own questions.
+  - **Create a new record**:
+    `"Create a new order for Spaghetti Carbonara."`
+  - **Query existing records**:
+    `"Show me my orders"`
+  - **Handle an irrelevant question**:
+    `"Tell me a joke."`
 
-**Example Invocation:**
+## 🎨 Visualization Features
+
+The project includes a built-in method to visualize the agent's complex graph structure. The notebook uses `app.get_graph(xray=True).draw_mermaid_png()` to generate a detailed diagram of all the nodes, edges, and potential state transitions, making the agent's logic easy to understand and debug.
+
+## 🔧 Customization
+
+### Changing the LLM
+
+You can easily switch the underlying language model by modifying the `model` string in the `ChatOllama` initialization within the notebook's functions.
 
 ```python
-# The configuration to identify the current user (user_id: "2" is "Bob")
-fake_config = {"configurable": {"current_user_id": "2"}}
-
-# Ask a question to see your orders
-user_question_3 = "Show me my orders"
-result_3 = app.invoke({"question": user_question_3, "attempts": 0}, config=fake_config)
-print(result_3["query_result"])
-
-# Expected Output:
-# Hello Bob, you have ordered Lasagne for $14.0 and Spaghetti Carbonara for $15.0.
+llm = ChatOllama(model="your-ollama-model:latest", temperature=0)
 ```
+
+### Modifying Agent Behavior
+
+The agent's logic is defined by the system prompts in each node function (`convert_nl_to_sql`, `check_relevance`, etc.). Customize its behavior by editing these prompts to handle different database schemas or to change its personality.
+
+### Switching the Database
+
+The current implementation uses SQLite. You can switch to any database supported by SQLAlchemy by changing the `DATABASE_URL` environment variable and ensuring the appropriate database drivers are installed.
+
+```python
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@host/dbname")
+```
+
+## 📝 Requirements
+
+The project requires the following Python packages:
+
+```
+sqlalchemy
+langchain-core
+langchain-community
+langchain-ollama
+langgraph
+pydantic
+python-dotenv
+ipython
+# Note: Other dependencies may be required by langchain libraries.
+```
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+  - **Ollama Connection**: Ensure the Ollama application is running on your machine before starting the notebook.
+  - **Model Not Found**: Verify that you have pulled the required model (`llama3.2:latest`) using the `ollama pull` command.
+  - **SQL Errors**: If the agent repeatedly fails to generate a correct query, try refining the system prompt in the `convert_nl_to_sql` function to provide more specific examples or constraints for your database schema.
+
+## 🤝 Contributing
+
+We welcome contributions\! Please feel free to:
+
+  - **Report Issues**: Submit bug reports and suggest new features.
+  - **Code Contributions**: Fork the repository and submit pull requests with your enhancements.
+  - **Improve Documentation**: Help us make the documentation clearer and more comprehensive.
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+  - **LangChain & LangGraph Teams** for creating the powerful frameworks that make building complex agents possible.
+  - **Ollama** for providing an incredible platform for running local LLMs with ease.
+  - **The Open Source Community** for their continuous innovation and support.
+
+*Ready to chat with your database? Let's get started\!* 🚀
+
+**Star this repository if you found it helpful\!** ⭐
